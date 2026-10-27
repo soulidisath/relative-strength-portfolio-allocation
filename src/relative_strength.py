@@ -66,6 +66,18 @@ def pairwise_scores(
     return scores.sort_values(ascending=False)
 
 
+def pairwise_win_percent(scores: pd.Series) -> pd.Series:
+    """Convert tournament scores into the percentage of peers each asset beats.
+
+    With ``N`` assets, each asset is compared with ``N - 1`` peers. For example,
+    in a six-asset universe, four pairwise wins correspond to an 80% win rate.
+    """
+    n_assets = len(scores)
+    if n_assets < 2:
+        raise ValueError("At least two assets are required.")
+    return (scores.astype(float) / (n_assets - 1) * 100.0).rename("pairwise_win_percent")
+
+
 def rank_history(
     prices: pd.DataFrame,
     lookback: int = 63,
