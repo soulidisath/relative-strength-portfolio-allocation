@@ -8,8 +8,9 @@ The repository is a cleaned presentation of exploratory work developed while stu
 
 ## Research questions
 
-- Can a group of assets be ranked by comparing every pair through the trend of their price ratio?
-- How stable and interpretable is a simple tournament-style ranking across a defined universe?
+- Can a group of markets be ranked by comparing every pair through the trend of their price ratio?
+- Can the ranking be expressed in a way that is visually and economically intuitive?
+- How does leadership change through time across a defined commodity universe?
 - How do ranking-derived allocations differ from a conventional mean-variance / maximum-Sharpe allocation?
 
 ## 1. Pairwise relative-strength ranking
@@ -20,25 +21,52 @@ In the original notebook, the directional classification of each ratio came from
 
 The cleaned implementation in `src/relative_strength.py` keeps the ranking mechanism but makes the ratio signal pluggable. The standalone example uses transparent **63-day ratio momentum** so this repository can be understood and rerun without depending on another project.
 
+### The score in plain English
+
+The reproducible example uses six commodity futures: **Gold, Silver, Copper, WTI crude oil, Natural Gas, and Corn**.
+
+Each commodity is compared with the other five. The final score is shown as the **percentage of peers it beats**:
+
+- beats all 5 peers → **100%**
+- beats 4 of 5 → **80%**
+- beats 3 of 5 → **60%**
+- beats 2 of 5 → **40%**
+- beats 1 of 5 → **20%**
+- beats none → **0%**
+
+So an 80% relative-strength reading simply means: *over the selected lookback, this commodity's price ratio was stronger than four of the five other commodities.*
+
 Conceptually:
 
 ```text
-asset universe
+commodity universe
     ↓
-all pairwise price ratios
+compare every pair using A / B
     ↓
-directional signal for each ratio
+which side of each ratio was stronger?
     ↓
-one point to the stronger asset in each pair
+count pairwise wins
     ↓
-rank assets by total pairwise wins
+convert wins to % of peers beaten
 ```
 
-### Reproducible ranking example
+### First: what actually moved?
 
-![Pairwise relative-strength ranking](examples/output/relative_strength_ranking.png)
+![Commodity price performance](examples/output/commodity_price_performance.png)
 
-The chart shows the pairwise tournament score for a small liquid crypto universe. It is a ranking diagnostic, not a performance chart.
+Prices are rebased to `100` at the beginning of the same 63-day window used for the final ranking. This makes the underlying market moves visible before looking at any ranking score.
+
+### Then: who beat the most peers?
+
+![Commodity relative-strength win rate](examples/output/relative_strength_win_rate.png)
+
+This is the simplest snapshot of the model. A bar at `80%` means that commodity beat four of its five peers in pairwise ratio comparisons.
+
+### Leadership through time
+
+![Commodity relative-strength history](examples/output/relative_strength_history.png)
+
+The ranking is recalculated approximately monthly. This chart shows the percentage of peers beaten at each observation, making changes in cross-commodity leadership visible instead of showing only one final ranking.
 
 ## 2. Portfolio allocation
 
@@ -53,20 +81,20 @@ The allocation experiment is kept separate from the ranking logic. `src/portfoli
 
 No risk-free rate, transaction cost, turnover penalty, shrinkage estimator, or estimation-error correction is included. It is therefore best viewed as a conventional mean-variance experiment rather than an institutional portfolio-construction model.
 
-### Two ways to translate the same universe into weights
+### Two different ways to turn the same market view into weights
 
 ![Portfolio weight comparison](examples/output/allocation_weights.png)
 
-The example contrasts two intentionally different constructions:
+The bars are shown directly as **portfolio percentages**:
 
-- **Rank-derived weights:** normalize the pairwise scores of the top-ranked assets.
-- **Max-Sharpe weights:** solve the long-only historical mean/covariance optimization.
+- **Rank-derived:** take the top three relative-strength scores and normalize them to 100%.
+- **Max-Sharpe:** ignore the ranking and solve the long-only historical mean/covariance optimization.
 
-The comparison is meant to show how a relative-strength view and a mean-variance view can produce different allocations, not to establish that either is superior.
+The comparison is deliberately secondary to the relative-strength charts. Its purpose is simply to show that a ranking-based view and a mean-variance view can translate the same commodity universe into very different allocations.
 
 ## Reproducible example
 
-`examples/cross_asset_demo.py` downloads daily BTC, ETH, SOL, BNB, and XRP data through `yfinance`, calculates the pairwise ranking, and produces both figures above.
+`examples/cross_asset_demo.py` downloads continuous front-month-style Yahoo Finance series for Gold (`GC=F`), Silver (`SI=F`), Copper (`HG=F`), WTI crude (`CL=F`), Natural Gas (`NG=F`), and Corn (`ZC=F`).
 
 Run from the repository root:
 
@@ -93,7 +121,9 @@ A GitHub Actions workflow reruns the example in a clean Python environment after
 │   ├── cross_asset_demo.py
 │   └── output/
 │       ├── allocation_weights.png
-│       └── relative_strength_ranking.png
+│       ├── commodity_price_performance.png
+│       ├── relative_strength_history.png
+│       └── relative_strength_win_rate.png
 └── src/
     ├── __init__.py
     ├── portfolio.py
@@ -106,9 +136,10 @@ This work was exploratory. In particular:
 
 - relative-strength scores depend on the chosen universe, signal definition, and lookback;
 - the standalone momentum signal is a transparent replacement for the original TPI ratio classifier, not a claim that the two are identical;
+- Yahoo Finance commodity futures series are convenient research proxies and can contain roll effects; they should not be treated as clean investable total-return indices;
 - historical mean returns and covariance estimates are noisy inputs to portfolio optimization;
 - maximizing in-sample Sharpe can produce unstable or concentrated weights;
 - the allocation example does not include transaction costs, turnover constraints, or a risk-free rate; and
 - none of the figures should be interpreted as evidence of out-of-sample alpha or future profitability.
 
-The goal of the project was to turn a discretionary idea—*which assets are stronger than their peers?*—into an explicit ranking procedure and then explore different ways to translate that ranking into portfolio weights.
+The goal of the project was to turn a discretionary idea—*which markets are stronger than their peers?*—into an explicit ranking procedure, make that ranking easy to understand visually, and then explore different ways to translate it into portfolio weights.
